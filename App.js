@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TouchableOpacity } from 'react-native';
+import { View, Text, TouchableOpacity, Switch } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
-import { evaluate } from 'mathjs';
+import { evaluate, pi, e, sqrt } from 'mathjs';
 
 export default function App() {
   const [input, setInput] = useState('');
@@ -9,6 +9,7 @@ export default function App() {
   const [history, setHistory] = useState([]);
   const [newCalculation, setNewCalculation] = useState(false);
   const [memory, setMemory] = useState(0);
+  const [scientificMode, setScientificMode] = useState(false);
 
   const formatNumber = (num) => {
     if (!num) return '0';
@@ -26,7 +27,8 @@ export default function App() {
     } else if (value === '=') {
       try {
         if (input.trim() === '') return;
-        const newResult = evaluate(input).toString(); // Using mathjs for safer evaluation
+        let expression = input.replace(/π/g, pi).replace(/e/g, e).replace(/√/g, 'sqrt');
+        const newResult = evaluate(expression).toString();
         setHistory([...history.slice(-2), input + ' = ' + newResult]);
         setInput(newResult);
         setResult(newResult);
@@ -44,6 +46,8 @@ export default function App() {
       setMemory(0);
     } else if (value === 'MR') {
       setInput(memory.toString());
+    } else if (['sin', 'cos', 'tan', 'log', '√'].includes(value)) {
+      setInput(`${value}(${input})`);
     } else {
       if (newCalculation && /[0-9]/.test(value)) {
         setInput(value);
@@ -54,32 +58,26 @@ export default function App() {
     }
   };
 
-  useEffect(() => {
-    const handleKeyPress = (event) => {
-      if (/^[0-9+\-*/.]$/.test(event.key)) {
-        setInput((prevInput) => prevInput + event.key);
-      } else if (event.key === 'Enter') {
-        if (input.trim() !== '') handlePress('=');
-      } else if (event.key === 'Backspace') {
-        handlePress('C');
-      } else if (event.key === 'Escape') {
-        handlePress('AC');
-      }
-    };
-
-    document.addEventListener('keydown', handleKeyPress);
-    return () => {
-      document.removeEventListener('keydown', handleKeyPress);
-    };
-  }, [input]);
-
   const buttons = [
-    ['M+', 'M-', 'MS', 'MC'],
-    ['7', '8', '9', '/'],
-    ['4', '5', '6', '*'],
-    ['1', '2', '3', '-'],
-    ['C', '0', '.', '+'],
-    ['AC', '', 'MR',  '=']
+    ['/', '*', '-', '+'],
+    ['7', '8', '9', ''],
+    ['4', '5', '6', ''],
+    ['1', '2', '3', ''],
+    ['C', '0', '.', ''],
+    ['AC', '', '',  '=']
+  ];
+
+  const operatorButtons = [
+    ['M+', '('],
+    ['M-', ')'],
+    ['MS', ''],
+    ['MC', '']
+  ];
+
+
+  const scientificButtons = [
+    ['sin', 'cos', 'tan', 'log'],
+    ['√', '^', 'π', 'e']
   ];
 
   return (
@@ -92,27 +90,80 @@ export default function App() {
           <Text style={{ fontSize: 32, textAlign: 'right', minHeight: 50 }}>{formatNumber(input) || '0'}</Text>
           <Text style={{ fontSize: 24, textAlign: 'right', color: 'gray', minHeight: 30 }}>{formatNumber(result)}</Text>
           <Text style={{ fontSize: 18, textAlign: 'right', color: 'blue', minHeight: 20 }}>Memory: {formatNumber(memory)}</Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 10 }}>
+            <Text>Scientific Mode</Text>
+            <Switch value={scientificMode} onValueChange={setScientificMode} />
+          </View>
         </View>
-        <View style={{ marginTop: 20 }}>
-          {buttons.map((row, rowIndex) => (
-            <View key={rowIndex} style={{ flexDirection: 'row' }}>
-              {row.map((button) => (
-                <TouchableOpacity
-                  key={button}
-                  onPress={() => handlePress(button)}
-                  style={{
-                    backgroundColor: ['C', 'AC', 'MC'].includes(button) ? '#FF4136' : button === '=' ? '#2ECC40' : '#0074D9',
-                    padding: 20,
-                    margin: 5,
-                    borderRadius: 5,
-                    width: 70,
-                    alignItems: 'center',
-                  }}>
-                  <Text style={{ color: 'white', fontSize: 24 }}>{button}</Text>
-                </TouchableOpacity>
+        
+        <View style={{ flexDirection: 'row', marginTop: 20 }}>
+          <View>
+            {buttons.map((row, rowIndex) => (
+              <View key={rowIndex} style={{ flexDirection: 'row' }}>
+                {row.map((button) => (
+                  <TouchableOpacity
+                    key={button}
+                    onPress={() => handlePress(button)}
+                    style={{
+                      backgroundColor: ['C', 'AC', 'MC'].includes(button) ? '#FF4136' : button === '=' ? '#2ECC40' : '#0074D9',
+                      padding: 20,
+                      margin: 5,
+                      borderRadius: 5,
+                      width: 70,
+                      alignItems: 'center',
+                    }}>
+                    <Text style={{ color: 'white', fontSize: 24 }}>{button}</Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            ))}
+          </View>
+
+        <View style={{ marginLeft: 20 }}>
+          {operatorButtons.map((row, rowIndex) => (
+                <View key={rowIndex} style={{ flexDirection: 'row' }}>
+                  {row.map((button) => (
+                    <TouchableOpacity
+                    key={button}
+                    onPress={() => handlePress(button)}
+                    style={{
+                      backgroundColor: ['C', 'AC', 'MC'].includes(button) ? '#FF4136' : button === '=' ? '#2ECC40' : '#0074D9',
+                      padding: 20,
+                      margin: 5,
+                      borderRadius: 5,
+                      width: 70,
+                      alignItems: 'center',
+                    }}>
+                    <Text style={{ color: 'white', fontSize: 24 }}>{button}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
               ))}
             </View>
-          ))}
+
+          {scientificMode && (
+            <View style={{ marginLeft: 20 }}>
+              {scientificButtons.map((row, rowIndex) => (
+                <View key={rowIndex} style={{ flexDirection: 'row' }}>
+                  {row.map((button) => (
+                    <TouchableOpacity
+                      key={button}
+                      onPress={() => handlePress(button)}
+                      style={{
+                        backgroundColor: '#FFA500',
+                        padding: 20,
+                        margin: 5,
+                        borderRadius: 5,
+                        width: 70,
+                        alignItems: 'center',
+                      }}>
+                      <Text style={{ color: 'white', fontSize: 20 }}>{button}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              ))}
+            </View>
+          )}
         </View>
       </View>
     </SafeAreaProvider>
